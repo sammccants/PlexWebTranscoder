@@ -18,22 +18,9 @@ if platform.system() == "Darwin":
 # logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 
-# TODO:
-# - wizard output command to run directly next time
-# - option to run for a separate directory
-# - test on mac (specifically color stuff & path autocomplete)
-# - work out path autocomplete on Windows
-# - more specific check for specific exceptions
-# - do something about prints vs logging
-# - do subtitles need to be considered?
-
 # False: only transcode video files from current directory
 # True: transcode video files from current directory and all subdirectories (except OUTPUT_DIRECTORY)
-RECURSIVE = False
-# True: if a file with output file path/name/type exists, don't transcode / copy file
-# False: if such a file exists, check for file-1, file-2, file-3, etc until there's no conflict
-#   and use that name
-SKIP_IF_NAME_CONFLICTS = False
+RECURSIVE = True
 # False: put transcoded / copied files into OUTPUT_DIRECTORY
 # True: put transcoded files into its original directory and DELETE original file
 IN_PLACE_TRANSCODING = False
@@ -43,9 +30,9 @@ IN_PLACE_TRANSCODING = False
 DISCOVERY_MODE = False
 
 # directory to read from, defaulting to current directory
-INPUT_DIRECTORY = "."
+INPUT_DIRECTORY = "./input"
 # directory where files will go if not transcoding in place
-OUTPUT_DIRECTORY = "./transcoded-files"
+OUTPUT_DIRECTORY = "./output"
 # desired output file video codec
 OUTPUT_VIDEO_CODEC = 'h264'
 # video codecs that don't require transcoding
@@ -223,16 +210,12 @@ def transcoding_is_necessary(file_info):
         if not IN_PLACE_TRANSCODING:
             output_file = f'{OUTPUT_DIRECTORY}/{file_info["file_name"]}.{file_info["file_type"]}'
             if os.path.isfile(output_file):
-                if SKIP_IF_NAME_CONFLICTS:
-                    print(f" {Fore.RED}File {Fore.CYAN}{output_file}{Fore.RED} already exists; not copying to output directory{Fore.RESET}")
-                    return False
-                else:
-                    counter = 1
-                    error_start_text = f"{Fore.RED}File {Fore.CYAN}{output_file}{Fore.RED} already exists; {Fore.RESET}"
-                    while os.path.isfile(output_file):
-                        output_file = f'{OUTPUT_DIRECTORY}/{file_info["file_name"]}-{counter}.{file_info["file_type"]}'
-                        counter += 1
-                    print(f" {error_start_text}{Fore.RED}instead copying to {Fore.CYAN}{output_file}{Fore.RESET}")
+                counter = 1
+                error_start_text = f"{Fore.RED}File {Fore.CYAN}{output_file}{Fore.RED} already exists; {Fore.RESET}"
+                while os.path.isfile(output_file):
+                    output_file = f'{OUTPUT_DIRECTORY}/{file_info["file_name"]}-{counter}.{file_info["file_type"]}'
+                    counter += 1
+                print(f" {error_start_text}{Fore.RED}instead copying to {Fore.CYAN}{output_file}{Fore.RESET}")
             copyfile(file_info['input_path'], output_file)
         return False
     return True
@@ -269,11 +252,10 @@ def get_output_file(directory_path, file_name):
     else:
         output_file = f'{OUTPUT_DIRECTORY}/{file_name}.{OUTPUT_FILE_TYPE}'
 
-        if not SKIP_IF_NAME_CONFLICTS:
-            counter = 1
-            while os.path.isfile(output_file):
-                output_file = f'{OUTPUT_DIRECTORY}/{file_name}-{counter}.{OUTPUT_FILE_TYPE}'
-                counter += 1
+        counter = 1
+        while os.path.isfile(output_file):
+            output_file = f'{OUTPUT_DIRECTORY}/{file_name}-{counter}.{OUTPUT_FILE_TYPE}'
+            counter += 1
     return output_file
 
 
@@ -676,7 +658,6 @@ def run_wizard():
 
     global RECURSIVE
     global IN_PLACE_TRANSCODING
-    global SKIP_IF_NAME_CONFLICTS
     global DISCOVERY_MODE
 
     global INPUT_DIRECTORY
@@ -692,7 +673,6 @@ def run_wizard():
     # record defaults to check for changes later
     default_recursive = RECURSIVE
     default_in_place_trancoding = IN_PLACE_TRANSCODING
-    default_skip_if_name_conflicts = SKIP_IF_NAME_CONFLICTS
     default_discovery_mode = DISCOVERY_MODE
 
     default_input_directory = INPUT_DIRECTORY
@@ -736,14 +716,7 @@ def run_wizard():
     RECURSIVE = await_bool_input(recursive_prompt, RECURSIVE)
     current_question += 1
     if (RECURSIVE != default_recursive):
-        command_flag_arguments += 'r'
-
-    if not DISCOVERY_MODE:
-        skip_conflicts_prompt = f"{current_question}. When saving, if a file already exists with the given name, a number will be appended to the end.\n Alternatively, you can choose to skip transcoding files if there is a naming conflict.\n {Fore.CYAN}Do you want to skip a file if a file with its name already exists?{Fore.RESET}"
-        SKIP_IF_NAME_CONFLICTS = await_bool_input(skip_conflicts_prompt, SKIP_IF_NAME_CONFLICTS)
-        current_question += 1
-        if (SKIP_IF_NAME_CONFLICTS != default_skip_if_name_conflicts):
-            command_flag_arguments += 's'
+        command_flag_arguments += 'n'
 
     # string arguments
     if not IN_PLACE_TRANSCODING and not DISCOVERY_MODE:
@@ -815,7 +788,6 @@ def process_arguments():
 
     global RECURSIVE
     global IN_PLACE_TRANSCODING
-    global SKIP_IF_NAME_CONFLICTS
     global DISCOVERY_MODE
 
     global INPUT_DIRECTORY
@@ -835,14 +807,11 @@ def process_arguments():
     # arguments set by the wizard should override any conflicting arguments
     flag_argument_group.add_argument('-w', '--wizard', action='store_true', help="run the script's wizard")
 
-    recursive_action = 'store_false' if RECURSIVE else 'store_true'
-    flag_argument_group.add_argument('-r', '--recursive', action=recursive_action, help="run for subdirectories as well as current (excluding the output directory)")
+    recursive_action = 'store_false' if not RECURSIVE else 'store_true'
+    flag_argument_group.add_argument('-n', '--nonrecursive', action=recursive_action, help="only run for input directory, not its subdirectories")
 
     inplace_action = 'store_false' if IN_PLACE_TRANSCODING else 'store_true'
     flag_argument_group.add_argument('-p', '--inplace', action=inplace_action, help="transcode files in-place (deleting original) instead of saving to output directory")
-
-    skipconflict_action = 'store_false' if SKIP_IF_NAME_CONFLICTS else 'store_true'
-    flag_argument_group.add_argument('-s', '--skipconflict', action=skipconflict_action, help="if file with same name exists in output directory, don't transcode/copy this file; if false, -[number] will be appended to avoid conflict")
 
     discovery_action = 'store_false' if DISCOVERY_MODE else 'store_true'
     flag_argument_group.add_argument('-d', '--discovery', action=discovery_action, help="generate report about files that need transcoding but don't transcode files")
@@ -869,9 +838,8 @@ def process_arguments():
 
     args = parser.parse_args()
 
-    RECURSIVE = args.recursive
+    RECURSIVE = not args.nonrecursive
     IN_PLACE_TRANSCODING = args.inplace
-    SKIP_IF_NAME_CONFLICTS = args.skipconflict
     DISCOVERY_MODE = args.discovery
 
     INPUT_DIRECTORY = args.inputdirectory
