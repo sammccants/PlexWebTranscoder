@@ -46,7 +46,7 @@ OUTPUT_FILE_TYPE = 'mp4'
 # file types that don't require transcoding if codec requirements are satisfied
 ALLOWED_OUTPUT_FILE_TYPES = ['mp4', 'm4v', 'mkv']
 # filetypes to automatically skip; this could get really long, but these are the main ones for me
-EXCLUDED_FILE_TYPES = ['py', 'txt', 'zip', 'rar', 'exe', 'srt', 'sub', 'jpg', 'jpeg', 'png', 'webp']
+EXCLUDED_FILE_TYPES = ['py', 'gitignore', 'txt', 'zip', 'rar', 'exe', 'srt', 'sub', 'jpg', 'jpeg', 'png', 'webp']
 
 # log level for ffmpeg, which does the transcoding
 FFMPEG_LOG_LEVEL = 'error'
@@ -692,17 +692,17 @@ def run_wizard():
     command_value_arguments = ''
 
     # bool arguments
-    input_directory_prompt = f"{current_question}. {Fore.CYAN}What is the path to the input directory?{Fore.RESET}"
-    INPUT_DIRECTORY = await_existing_directory_input(input_directory_prompt, INPUT_DIRECTORY)
-    current_question += 1
-    if (INPUT_DIRECTORY != default_input_directory):
-        command_value_arguments += f' -id "{INPUT_DIRECTORY}"'
-
     discovery_prompt = f"{current_question}. This script can be run in discovery mode in order to generate a report on\n which files require transcoding and why, without doing any actual transcoding.\n {Fore.CYAN}Run in discovery mode?{Fore.RESET}"
     DISCOVERY_MODE = await_bool_input(discovery_prompt, DISCOVERY_MODE)
     current_question += 1
     if (DISCOVERY_MODE != default_discovery_mode):
         command_flag_arguments += 'd'
+
+    input_directory_prompt = f"{current_question}. {Fore.CYAN}What is the path to the input directory?{Fore.RESET}"
+    INPUT_DIRECTORY = await_existing_directory_input(input_directory_prompt, INPUT_DIRECTORY)
+    current_question += 1
+    if (INPUT_DIRECTORY != default_input_directory):
+        command_value_arguments += f' -id "{INPUT_DIRECTORY}"'
 
     if not DISCOVERY_MODE:
         in_place_prompt = f"{current_question}. By default, this script saves a transcoded file to a specific output directory.\n Alternatively, you can choose to save the file to its source directory, deleting the source file.\n {Fore.CYAN}Do you wish to save to source directories and delete source files?{Fore.RESET}"
@@ -783,7 +783,7 @@ def run_wizard():
     command_flag_arguments = f' -{command_flag_arguments}' if command_flag_arguments else ''
     command_to_rerun = f'python index.py{command_flag_arguments}{command_value_arguments}'
     print(" Running the following command will rerun the script with these same settings:")
-    print(f' {Fore.GREEN}{command_to_rerun}{Fore.RESET}')
+    print(f' {Fore.GREEN}{command_to_rerun}{Fore.RESET}\n')
 
 
 def process_arguments():
