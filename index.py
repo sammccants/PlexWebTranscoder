@@ -49,7 +49,7 @@ ALLOWED_OUTPUT_FILE_TYPES = ['mp4', 'm4v', 'mkv']
 EXCLUDED_FILE_TYPES = ['py', 'txt', 'zip', 'rar', 'exe', 'srt', 'sub', 'jpg', 'jpeg', 'png', 'webp']
 
 # log level for ffmpeg, which does the transcoding
-FFMPEG_LOG_LEVEL = 'quiet'
+FFMPEG_LOG_LEVEL = 'error'
 
 discovery_mode_list = []
 
@@ -328,9 +328,11 @@ def transcode_video(file_info):
     ).global_args('-stats', '-n')
     try:
         ffmpeg.run(stream)
-    except (Exception):
-        print(f" {Fore.RED}File {Fore.CYAN}{output_file}{Fore.RED} already exists; skipping transcoding{Fore.RESET}")
-        # Exception will occur if you choose not to overwrite a file
+    except (ffmpeg.Error):
+        print(f" {Fore.RED}Exception while transcoding {Fore.CYAN}{output_file}{Fore.RED}!{Fore.RESET}\n")
+
+        # remove failed in-progress file before moving onto next file
+        os.remove(output_file)
         return False
 
     if IN_PLACE_TRANSCODING:
@@ -686,7 +688,7 @@ def run_wizard():
     default_excluded_file_types = EXCLUDED_FILE_TYPES
 
     current_question = 1
-    command_flag_arguments = ' -'
+    command_flag_arguments = ''
     command_value_arguments = ''
 
     # bool arguments
@@ -778,7 +780,8 @@ def run_wizard():
             formated_for_output = ' '.join(EXCLUDED_FILE_TYPES)
             command_value_arguments += f' -eft "{formated_for_output}"'
 
-    command_to_rerun = f'python transcode-video.py{command_flag_arguments}{command_value_arguments}'
+    command_flag_arguments = f' -{command_flag_arguments}' if command_flag_arguments else ''
+    command_to_rerun = f'python index.py{command_flag_arguments}{command_value_arguments}'
     print(" Running the following command will rerun the script with these same settings:")
     print(f' {Fore.GREEN}{command_to_rerun}{Fore.RESET}')
 
