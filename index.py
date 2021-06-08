@@ -320,6 +320,7 @@ def transcode_video(file_info):
         return False
     except Exception as error:
         print(f"Non ffmpeg.Error exception occurred: {error}")
+        return False
 
     if IN_PLACE_TRANSCODING:
         # delete input file and rename output file
