@@ -2,7 +2,6 @@ import argparse
 import glob
 # import logging
 import os
-from shutil import copyfile
 import platform
 import time
 
@@ -180,16 +179,13 @@ def transcoding_is_necessary(file_info):
     """Check if transcoding is necessary for a file
 
     Determine whether transcoding is necessary for a given file.
-    If it is, return True; if it isn't, copy the file to the output
-    directory (if not transcoding in place) and then return False.
+    If it is, return True; if it isn't, return False.
 
     Parameters
     ----------
     file_info : dict
         Info about this file with keys:
-        file_name: name of the input file, excluding file type
         file_type: type of the input file
-        input_path: full path of the input file, including file name and type
         output_video_option: video codec transcoding option
         output_audio_option: audio codec transcoding option
 
@@ -204,19 +200,7 @@ def transcoding_is_necessary(file_info):
         file_info['output_audio_option'] == 'copy' and
         file_info['file_type'] in ALLOWED_OUTPUT_FILE_TYPES
     ):
-        if DISCOVERY_MODE:
-            return False
         print(f" {Fore.GREEN}File doesn't need to be transcoded{Fore.RESET}")
-        if not IN_PLACE_TRANSCODING:
-            output_file = f'{OUTPUT_DIRECTORY}/{file_info["file_name"]}.{file_info["file_type"]}'
-            if os.path.isfile(output_file):
-                counter = 1
-                error_start_text = f"{Fore.RED}File {Fore.CYAN}{output_file}{Fore.RED} already exists; {Fore.RESET}"
-                while os.path.isfile(output_file):
-                    output_file = f'{OUTPUT_DIRECTORY}/{file_info["file_name"]}-{counter}.{file_info["file_type"]}'
-                    counter += 1
-                print(f" {error_start_text}{Fore.RED}instead copying to {Fore.CYAN}{output_file}{Fore.RESET}")
-            copyfile(file_info['input_path'], output_file)
         return False
     return True
 
