@@ -318,6 +318,8 @@ def transcode_video(file_info):
         # remove failed in-progress file before moving onto next file
         os.remove(output_file)
         return False
+    except Exception as error:
+        print(f"Non ffmpeg.Error exception occurred: {error}")
 
     if IN_PLACE_TRANSCODING:
         # delete input file and rename output file
