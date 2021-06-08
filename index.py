@@ -168,6 +168,10 @@ def get_current_codecs(input_path):
                 video_codec = stream['codec_name']
             if not audio_codec and stream['codec_type'] == 'audio':
                 audio_codec = stream['codec_name']
+                # print()
+                # print('--- CHANNELS ---')
+                # print(stream['channels'])
+                # print()
             if video_codec and audio_codec:
                 break
         return video_codec, audio_codec
@@ -307,6 +311,8 @@ def transcode_video(file_info):
         stream,
         output_file,
         vcodec=file_info['output_video_option'],
+        # TODO: get converting from 5.1 to stereo to work
+        # ac=2,
         acodec=file_info['output_audio_option'],
         loglevel=FFMPEG_LOG_LEVEL
     ).global_args('-stats', '-n')
