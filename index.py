@@ -46,7 +46,7 @@ OUTPUT_FILE_TYPE = 'mp4'
 # file types that don't require transcoding if codec requirements are satisfied
 ALLOWED_OUTPUT_FILE_TYPES = ['mp4', 'm4v', 'mkv']
 # filetypes to automatically skip; this could get really long, but these are the main ones for me
-EXCLUDED_FILE_TYPES = ['py', 'gitignore', 'txt', 'zip', 'rar', 'exe', 'srt', 'sub', 'jpg', 'jpeg', 'png', 'webp']
+EXCLUDED_FILE_TYPES = ['py', 'gitignore', 'txt', 'zip', 'rar', 'exe', 'srt', 'sub', 'jpg', 'jpeg', 'png', 'webp', 'idx', 'lnk']
 
 # log level for ffmpeg, which does the transcoding
 FFMPEG_LOG_LEVEL = 'error'
