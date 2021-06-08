@@ -2,7 +2,6 @@ import argparse
 import glob
 # import logging
 import os
-from shutil import copyfile
 import platform
 import time
 
@@ -46,7 +45,7 @@ OUTPUT_FILE_TYPE = 'mp4'
 # file types that don't require transcoding if codec requirements are satisfied
 ALLOWED_OUTPUT_FILE_TYPES = ['mp4', 'm4v', 'mkv']
 # filetypes to automatically skip; this could get really long, but these are the main ones for me
-EXCLUDED_FILE_TYPES = ['py', 'gitignore', 'txt', 'zip', 'rar', 'exe', 'srt', 'sub', 'jpg', 'jpeg', 'png', 'webp']
+EXCLUDED_FILE_TYPES = ['py', 'gitignore', 'txt', 'zip', 'rar', 'exe', 'srt', 'sub', 'jpg', 'jpeg', 'png', 'webp', 'idx', 'lnk']
 
 # log level for ffmpeg, which does the transcoding
 FFMPEG_LOG_LEVEL = 'error'
@@ -169,6 +168,10 @@ def get_current_codecs(input_path):
                 video_codec = stream['codec_name']
             if not audio_codec and stream['codec_type'] == 'audio':
                 audio_codec = stream['codec_name']
+                # print()
+                # print('--- CHANNELS ---')
+                # print(stream['channels'])
+                # print()
             if video_codec and audio_codec:
                 break
         return video_codec, audio_codec
@@ -180,16 +183,13 @@ def transcoding_is_necessary(file_info):
     """Check if transcoding is necessary for a file
 
     Determine whether transcoding is necessary for a given file.
-    If it is, return True; if it isn't, copy the file to the output
-    directory (if not transcoding in place) and then return False.
+    If it is, return True; if it isn't, return False.
 
     Parameters
     ----------
     file_info : dict
         Info about this file with keys:
-        file_name: name of the input file, excluding file type
         file_type: type of the input file
-        input_path: full path of the input file, including file name and type
         output_video_option: video codec transcoding option
         output_audio_option: audio codec transcoding option
 
@@ -204,19 +204,7 @@ def transcoding_is_necessary(file_info):
         file_info['output_audio_option'] == 'copy' and
         file_info['file_type'] in ALLOWED_OUTPUT_FILE_TYPES
     ):
-        if DISCOVERY_MODE:
-            return False
         print(f" {Fore.GREEN}File doesn't need to be transcoded{Fore.RESET}")
-        if not IN_PLACE_TRANSCODING:
-            output_file = f'{OUTPUT_DIRECTORY}/{file_info["file_name"]}.{file_info["file_type"]}'
-            if os.path.isfile(output_file):
-                counter = 1
-                error_start_text = f"{Fore.RED}File {Fore.CYAN}{output_file}{Fore.RED} already exists; {Fore.RESET}"
-                while os.path.isfile(output_file):
-                    output_file = f'{OUTPUT_DIRECTORY}/{file_info["file_name"]}-{counter}.{file_info["file_type"]}'
-                    counter += 1
-                print(f" {error_start_text}{Fore.RED}instead copying to {Fore.CYAN}{output_file}{Fore.RESET}")
-            copyfile(file_info['input_path'], output_file)
         return False
     return True
 
@@ -323,6 +311,8 @@ def transcode_video(file_info):
         stream,
         output_file,
         vcodec=file_info['output_video_option'],
+        # TODO: get converting from 5.1 to stereo to work
+        # ac=2,
         acodec=file_info['output_audio_option'],
         loglevel=FFMPEG_LOG_LEVEL
     ).global_args('-stats', '-n')
@@ -333,6 +323,9 @@ def transcode_video(file_info):
 
         # remove failed in-progress file before moving onto next file
         os.remove(output_file)
+        return False
+    except Exception as error:
+        print(f"Non ffmpeg.Error exception occurred: {error}")
         return False
 
     if IN_PLACE_TRANSCODING:
